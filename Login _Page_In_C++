@@ -1,0 +1,486 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <fstream>
+#include <limits>
+#include <windows.h>
+
+using namespace std;
+
+// Function to set console window size
+void setConsoleWindowSize(int width, int height) {
+    HWND console = GetConsoleWindow();
+    MoveWindow(console, 100, 100, width, height, TRUE);
+}
+
+// Function to center text in console
+void centerText(const string& text) {
+    int width = 60; // Width for centering text
+    int padding = (width - text.length()) / 2;
+    cout << setw(padding + text.length()) << text << endl;
+}
+
+// Function to display header
+void displayHeader(const string& title) {
+    cout << "\n";
+    centerText("************************************");
+    centerText(title);
+    centerText("************************************");
+}
+
+// Function to display main menu
+void displayMenu() {
+    centerText("1. Sign Up");
+    centerText("2. Login");
+    centerText("3. Forgot Password");
+    centerText("4. Forgot Email");
+    centerText("5. Exit");
+    cout << "------------------------------------\n";
+}
+
+// Function to validate username
+bool isUsernameValid(const string& username) {
+    return !username.empty();
+}
+
+// Function to validate password
+bool isPasswordValid(const string& password) {
+    return password.length() >= 6;
+}
+
+// Function to validate email
+bool isEmailValid(const string& email) {
+    return email.find('@') != string::npos && email.find('.') != string::npos;
+}
+
+// Function to check if username already exists
+bool usernameExists(const string& username) {
+    string fileUsername;
+    ifstream dataFile("Data.txt");
+    
+    while (dataFile >> ws >> fileUsername) {
+        dataFile.ignore(numeric_limits<streamsize>::max(), ' '); // Skip full name
+        if (fileUsername == username) {
+            dataFile.close();
+            return true;
+        }
+        dataFile.ignore(numeric_limits<streamsize>::max(), '\n'); // Skip rest of the line
+    }
+    dataFile.close();
+    return false;
+}
+
+// Function to show welcome page after signup
+void showWelcomePage(const string& firstName) {
+    system("cls"); // Clear console
+    displayHeader("Welcome to Programming Pioneer!");
+
+    centerText("Congratulations " + firstName + "!");
+    centerText("You are now part of an inspiring community.");
+    centerText("Together, we will innovate and create amazing projects!");
+    
+    centerText("1. Go to Login Page");
+    centerText("2. Exit");
+
+    int choice;
+    while (true) {
+        cout << "Enter your choice: ";
+        cin >> choice;
+        cin.ignore(); // Ignore the newline character
+        
+        if (choice == 1) break; // Go to login
+        if (choice == 2) {
+            centerText("Thank you for joining us! See you next time.");
+            exit(0);
+        }
+        centerText("** Invalid choice! Please enter 1 or 2. **");
+    }
+}
+
+// Function for user signup
+void signup() {
+    string firstName, lastName, username, password, confirmPassword, email;
+
+    displayHeader("Sign Up");
+
+    while (true) {
+        cout << "Enter your details:\n------------------------------------\n";
+
+        cout << "First Name: ";
+        getline(cin, firstName);
+        
+        cout << "Last Name: ";
+        getline(cin, lastName);
+
+        cout << "Email: ";
+        getline(cin, email);
+
+        if (!isEmailValid(email)) {
+            centerText("** Invalid email! Please try again. **");
+            continue;
+        }
+
+        cout << "Username: ";
+        getline(cin, username);
+
+        if (!isUsernameValid(username)) {
+            centerText("** Invalid username! Please try again. **");
+            continue;
+        }
+
+        if (usernameExists(username)) {
+            centerText("** Username already exists! Please use a different username. **");
+            continue;
+        }
+
+        cout << "Password: ";
+        getline(cin, password);
+
+        if (!isPasswordValid(password)) {
+            centerText("** Password must be at least 6 characters long! **");
+            continue;
+        }
+
+        cout << "Confirm Password: ";
+        getline(cin, confirmPassword);
+
+        if (password != confirmPassword) {
+            centerText("** Passwords do not match! Please try again. **");
+            continue;
+        }
+
+        // Save user data to file
+        ofstream dataFile("Data.txt", ios::app);
+        if (dataFile.is_open()) {
+            dataFile << "First Name: " << firstName << "\n"
+                     << "Last Name: " << lastName << "\n"
+                     << "Email: " << email << "\n"
+                     << "Username: " << username << "\n"
+                     << "Password: " << password << "\n"
+                     << "------------------------------\n";
+            dataFile.close();
+            centerText("** Signup successful! **");
+            showWelcomePage(firstName); // Show welcome page
+            break; // Exit the loop on successful signup
+        } else {
+            centerText("** Error opening file! **");
+        }
+    }
+}
+
+// Function for user login
+bool login() {
+    string username, password;
+    string fileUsername, filePass;
+
+    displayHeader("Login");
+    while (true) {
+        cout << "Enter your credentials:\n------------------------------------\n";
+        cout << "Username: ";
+        cin >> username;
+        cin.ignore(); // Ignore the newline character
+
+        cout << "Password: ";
+        cin >> password;
+
+        ifstream dataFile("Data.txt");
+        if (!dataFile.is_open()) {
+            centerText("** Error opening file! **");
+            return false; // Stop further processing
+        }
+
+        bool loginSuccess = false; // Track if login is successful
+        string line;
+        while (getline(dataFile, line)) {
+            if (line.find("Username:") != string::npos) {
+                fileUsername = line.substr(line.find(":") + 1);
+                fileUsername.erase(0, fileUsername.find_first_not_of(" \t")); // Trim spaces
+            } else if (line.find("Password:") != string::npos) {
+                filePass = line.substr(line.find(":") + 1);
+                filePass.erase(0, filePass.find_first_not_of(" \t")); // Trim spaces
+            } else if (line == "------------------------------") {
+                if (fileUsername == username && filePass == password) {
+                    loginSuccess = true; // Set success flag
+                    break; // Exit loop if credentials match
+                }
+                // Reset for next user data
+                fileUsername.clear();
+                filePass.clear();
+            }
+        }
+        dataFile.close();
+
+        if (loginSuccess) {
+            centerText("** Login successful! Welcome back! **");
+            centerText("You are now a valued member of the Programming Pioneer community.");
+            centerText("Together, we will innovate and create amazing projects!");
+
+            // Ask user for next action
+            int choice;
+            while (true) {
+                centerText("What would you like to do next?");
+                centerText("1. Go back to Sign Up");
+                centerText("2. Exit");
+                cout << "Enter your choice: ";
+                cin >> choice;
+                cin.ignore(); // Ignore the newline character
+
+                if (choice == 1) {
+                    return false; // Go back to signup
+                } else if (choice == 2) {
+                    centerText("Thank you for using our system! Exiting...");
+                    exit(0); // Exit the program
+                } else {
+                    centerText("** Invalid choice! Please enter 1 or 2. **");
+                }
+            }
+        } else {
+            centerText("** Invalid username or password! Please try again. **");
+        }
+    }
+}
+
+// Function for forgot password
+void forgotPassword() {
+    string username, email;
+    string fileUsername, fileEmail, fileFirstName, fileLastName, filePass;
+
+    displayHeader("Forgot Password");
+    cout << "Enter your username: ";
+    cin >> username;
+    cout << "Enter your email: ";
+    cin >> email;
+
+    ifstream dataFile("Data.txt");
+    if (!dataFile.is_open()) {
+        centerText("** Error opening file! **");
+        return;
+    }
+
+    bool userFound = false;
+    string line;
+    string allData; // To store all user data for updating
+    while (getline(dataFile, line)) {
+        if (line.find("Username:") != string::npos) {
+            fileUsername = line.substr(line.find(":") + 1);
+            fileUsername.erase(0, fileUsername.find_first_not_of(" \t")); // Trim spaces
+        } else if (line.find("Email:") != string::npos) {
+            fileEmail = line.substr(line.find(":") + 1);
+            fileEmail.erase(0, fileEmail.find_first_not_of(" \t")); // Trim spaces
+        } else if (line.find("First Name:") != string::npos) {
+            fileFirstName = line.substr(line.find(":") + 1);
+            fileFirstName.erase(0, fileFirstName.find_first_not_of(" \t")); // Trim spaces
+        } else if (line.find("Last Name:") != string::npos) {
+            fileLastName = line.substr(line.find(":") + 1);
+            fileLastName.erase(0, fileLastName.find_first_not_of(" \t")); // Trim spaces
+        } else if (line.find("Password:") != string::npos) {
+            filePass = line.substr(line.find(":") + 1);
+            filePass.erase(0, filePass.find_first_not_of(" \t")); // Trim spaces
+        } else if (line == "------------------------------") {
+            if (fileUsername == username && fileEmail == email) {
+                userFound = true;
+
+                // Attractive message
+                centerText("** Great! You've provided the correct username and email. **");
+                centerText("** Now, let's update your password for better security! **");
+
+                // Prompt for new password
+                string newPassword, confirmNewPassword;
+
+                while (true) {
+                    cout << "Enter your new password: ";
+                    cin >> newPassword;
+
+                    if (isPasswordValid(newPassword)) {
+                        centerText("** That's a strong password! **");
+                    } else {
+                        centerText("** Password must be at least 6 characters long! **");
+                        continue; // Restart the loop if password is not valid
+                    }
+
+                    cout << "Confirm your new password: ";
+                    cin >> confirmNewPassword;
+
+                    if (newPassword == confirmNewPassword) {
+                        // Update password in memory
+                        allData += "First Name: " + fileFirstName + "\n";
+                        allData += "Last Name: " + fileLastName + "\n";
+                        allData += "Email: " + fileEmail + "\n";
+                        allData += "Username: " + fileUsername + "\n";
+                        allData += "Password: " + newPassword + "\n"; // Update password line
+                        allData += "------------------------------\n";
+                        break; // Exit the loop after successful update
+                    } else {
+                        centerText("** Passwords do not match! Please try again. **");
+                    }
+                }
+            } else {
+                // Add the user data as it is
+                allData += line + "\n";
+            }
+            // Reset for next user data
+            fileUsername.clear();
+            fileEmail.clear();
+            fileFirstName.clear();
+            fileLastName.clear();
+            filePass.clear();
+        }
+    }
+    dataFile.close();
+
+    if (!userFound) {
+        centerText("** Username or email not found! **");
+    } else {
+        // Write updated data back to file
+        ofstream outDataFile("Data.txt");
+        outDataFile << allData; // Save all data including updated password
+        outDataFile.close();
+        centerText("** Password updated successfully! **");
+    }
+}
+
+// Function for forgot email
+void forgotEmail() {
+    string username, password;
+    string fileUsername, filePassword, fileEmail, fileFirstName, fileLastName;
+
+    displayHeader("Forgot Email");
+    cout << "Enter your username: ";
+    cin >> username;
+    cout << "Enter your password: ";
+    cin >> password;
+
+    ifstream dataFile("Data.txt");
+    if (!dataFile.is_open()) {
+        centerText("** Error opening file! **");
+        return;
+    }
+
+    bool userFound = false;
+    string line;
+    string allData; // To store all user data for saving later
+    string updatedData; // To store updated data for the specific user
+
+    while (getline(dataFile, line)) {
+        // Store current user data
+        if (line.find("Username:") != string::npos) {
+            fileUsername = line.substr(line.find(":") + 1);
+            fileUsername.erase(0, fileUsername.find_first_not_of(" \t")); // Trim spaces
+        } else if (line.find("Password:") != string::npos) {
+            filePassword = line.substr(line.find(":") + 1);
+            filePassword.erase(0, filePassword.find_first_not_of(" \t")); // Trim spaces
+        } else if (line.find("Email:") != string::npos) {
+            fileEmail = line.substr(line.find(":") + 1);
+            fileEmail.erase(0, fileEmail.find_first_not_of(" \t")); // Trim spaces
+        } else if (line.find("First Name:") != string::npos) {
+            fileFirstName = line.substr(line.find(":") + 1);
+            fileFirstName.erase(0, fileFirstName.find_first_not_of(" \t")); // Trim spaces
+        } else if (line.find("Last Name:") != string::npos) {
+            fileLastName = line.substr(line.find(":") + 1);
+            fileLastName.erase(0, fileLastName.find_first_not_of(" \t")); // Trim spaces
+        } else if (line == "------------------------------") {
+            if (fileUsername == username && filePassword == password) {
+                userFound = true;
+
+                // Prompt for new email
+                string newEmail;
+                cout << "Enter your new email: ";
+                cin >> newEmail;
+
+                // Update the email for the specific user
+                updatedData += "First Name: " + fileFirstName + "\n";
+                updatedData += "Last Name: " + fileLastName + "\n";
+                updatedData += "Username: " + fileUsername + "\n";
+                updatedData += "Password: " + filePassword + "\n";
+                updatedData += "Email: " + newEmail + "\n"; // Update email line
+                updatedData += "------------------------------\n";
+            } else {
+                // Add the user data as it is
+                allData += line + "\n";
+            }
+
+            // Reset for next user data
+            fileUsername.clear();
+            filePassword.clear();
+            fileEmail.clear();
+            fileFirstName.clear();
+            fileLastName.clear();
+        } else {
+            allData += line + "\n"; // Store the other lines
+        }
+    }
+    dataFile.close();
+
+    if (!userFound) {
+        centerText("** Username or password is incorrect! **");
+    } else {
+        // Write updated data back to file
+        ofstream outDataFile("Data.txt");
+        outDataFile << allData; // Save all other data
+        outDataFile << updatedData; // Save updated user data
+        outDataFile.close();
+
+        centerText("** Email updated successfully! **");
+
+        // Prompt user to return to main menu or exit
+        int choice;
+        centerText("Would you like to:");
+        centerText("1. Go back to the main menu");
+        centerText("2. Exit");
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        if (choice == 2) {
+            centerText("Thank you for using our system! Exiting...");
+            exit(0); // Exit the program
+        }
+        // If choice is 1, the user will return to the main menu in the next iteration of the main loop
+    }
+}
+
+int main() {
+    setConsoleWindowSize(600, 400); // Optional: Set console window size
+
+    int choice;
+    do {
+        system("cls"); // Clear console
+        displayHeader("Welcome to the Login System");
+        displayMenu();
+        
+        while (true) {
+            cout << "Enter your choice: ";
+            cin >> choice;
+
+            if (cin.fail() || choice < 1 || choice > 5) {
+                cin.clear(); // Clear the error flag
+                cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Ignore invalid input
+                centerText("** Invalid choice! Please enter 1, 2, 3, 4, or 5. **");
+            } else {
+                cin.ignore(); // Ignore the newline character
+                break; // Exit the loop if input is valid
+            }
+        }
+
+        switch (choice) {
+            case 1:
+                signup();
+                break;
+            case 2:
+                login();
+                break;
+            case 3:
+                forgotPassword();
+                break;
+            case 4:
+                forgotEmail();
+                break;
+            case 5:
+                centerText("Exiting... Thank you for using our system!");
+                break;
+            default:
+                centerText("Invalid choice. Please try again.");
+        }
+    } while (choice != 5);
+
+    return 0;
+}
