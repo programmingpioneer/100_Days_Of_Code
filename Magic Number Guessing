@@ -1,0 +1,122 @@
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
+#include <string>
+
+using namespace std;
+
+class MagicNumberGame {
+private:
+    int wins;
+    int losses;
+    const string historyFile = "history.txt";
+
+    void saveHistory(int attempts, bool won) {
+        ofstream file(historyFile, ios::app);
+        if (file.is_open()) {
+            file << "Result: " << (won ? "Win" : "Loss") << " | Attempts: " << attempts << endl;
+            file.close();
+        }
+    }
+
+    void displayHistory() {
+        ifstream file(historyFile);
+        string line;
+        cout << "\n=== Game History ===\n";
+        while (getline(file, line)) {
+            cout << line << endl;
+        }
+        cout << "====================\n";
+        file.close();
+    }
+
+    void printCentered(const string& text) {
+        int width = 60; // Width of the console line
+        int padding = (width - text.length()) / 2;
+        cout << string(padding, ' ') << text << endl;
+    }
+
+public:
+    MagicNumberGame() : wins(0), losses(0) {
+        srand(static_cast<unsigned>(time(0))); // Seed the random number generator
+    }
+
+    void play() {
+        char playAgain;
+        do {
+            int magicNumber = rand() % 100 + 1; // Magic number between 1 and 100
+            int guess;
+            int attempts = 0;
+            bool won = false;
+
+            printCentered("Welcome to the Magic Number Guessing Game!");
+            printCentered("Guess the magic number between 1 and 100.");
+            cout << "____________________________________________________________\n";
+
+            string hints[5] = {
+                "Hint 1: Try a higher number!",
+                "Hint 2: You're getting closer!",
+                "Hint 3: Think lower this time!",
+                "Hint 4: Remember, it's an odd number!",
+                "Hint 5: Oops! You have one last chance!"
+            };
+
+            while (!won && attempts < 5) {
+                cout << "Enter your guess: ";
+                cin >> guess;
+                attempts++;
+
+                if (guess < 1 || guess > 100) {
+                    cout << "Please guess a number between 1 and 100.\n";
+                } else if (guess < magicNumber) {
+                    if (attempts < 5) {
+                        cout << hints[attempts - 1] << endl; // Provide a hint
+                    }
+                    cout << "Too low! Try again.\n";
+                } else if (guess > magicNumber) {
+                    if (attempts < 5) {
+                        cout << hints[attempts - 1] << endl; // Provide a hint
+                    }
+                    cout << "Too high! Try again.\n";
+                } else {
+                    printCentered("Congratulations! You've guessed the magic number: " + to_string(magicNumber));
+                    won = true;
+                }
+            }
+
+            if (!won) {
+                printCentered("You've used all your attempts! The magic number was: " + to_string(magicNumber));
+                losses++;
+            } else {
+                wins++;
+            }
+
+            saveHistory(attempts, won);
+            printCentered("Total Wins: " + to_string(wins) + " | Total Losses: " + to_string(losses));
+            cout << "____________________________________________________________\n";
+
+            printCentered("Would you like to play again? (y/n): ");
+            cin >> playAgain;
+
+        } while (playAgain == 'y' || playAgain == 'Y');
+
+        // Ask the user if they want to see the history
+        char viewHistory;
+        printCentered("Would you like to view your game history? (y/n): ");
+        cin >> viewHistory;
+
+        if (viewHistory == 'y' || viewHistory == 'Y') {
+            displayHistory();
+        }
+
+        printCentered("Thank you for playing! Goodbye!");
+    }
+};
+
+int main() {
+    MagicNumberGame game;
+    game.play();
+    return 0;
+}
